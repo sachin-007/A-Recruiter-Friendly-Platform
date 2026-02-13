@@ -32,8 +32,8 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAlertStore } from '../../../stores/alert';
-import api from '../../../utils/axios';
+import { useAlertStore } from '../../stores/alert';
+import api from '../../utils/axios';
 
 const router = useRouter();
 const alert = useAlertStore();

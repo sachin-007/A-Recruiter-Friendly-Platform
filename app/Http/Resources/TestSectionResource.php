@@ -13,15 +13,7 @@ class TestSectionResource extends JsonResource
             'title' => $this->title,
             'description' => $this->description,
             'order' => $this->order,
-            'questions' => QuestionResource::collection($this->whenLoaded('questions'))->map(function ($q) {
-                // Add pivot data
-                $q->additional(['pivot' => [
-                    'marks' => $q->pivot->marks,
-                    'order' => $q->pivot->order,
-                    'is_optional' => $q->pivot->is_optional,
-                ]]);
-                return $q;
-            }),
+            'questions' => QuestionResource::collection($this->whenLoaded('questions')),
         ];
     }
 }

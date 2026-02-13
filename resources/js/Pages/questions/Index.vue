@@ -72,11 +72,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
-import { useAuthStore } from '../../../stores/auth';
-import { useAlertStore } from '../../../stores/alert';
-import api from '../../../utils/axios';
-import Pagination from '../../../components/Pagination.vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useAuthStore } from '../../stores/auth';
+import { useAlertStore } from '../../stores/alert';
+import Pagination from '../../Components/Pagination.vue';
+import api from '../../utils/axios';
 
 const auth = useAuthStore();
 const alert = useAlertStore();

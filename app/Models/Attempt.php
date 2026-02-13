@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Sanctum\HasApiTokens;
 
 class Attempt extends Model
 {
-    use HasUuids;
+    use HasApiTokens, HasUuids;
 
     protected $keyType = 'string';
     public $incrementing = false;
@@ -46,18 +47,5 @@ class Attempt extends Model
     public function answers()
     {
         return $this->hasMany(AttemptAnswer::class);
-    }
-
-    /**
-     * Get the token for candidate authentication.
-     */
-    public function createToken(string $name, array $abilities = ['candidate'])
-    {
-        return $this->morphMany(\Laravel\Sanctum\PersonalAccessToken::class, 'tokenable')
-                    ->create([
-                        'name' => $name,
-                        'token' => hash('sha256', $plainTextToken = \Illuminate\Support\Str::random(40)),
-                        'abilities' => $abilities,
-                    ], ['tokenable_id' => $this->id, 'tokenable_type' => static::class]);
     }
 }

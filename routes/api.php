@@ -1,13 +1,16 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\QuestionController;
-use App\Http\Controllers\Api\TestController;
-use App\Http\Controllers\Api\InvitationController;
 use App\Http\Controllers\Api\AttemptController;
-use App\Http\Controllers\Api\ReportController;
-use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ImportController;
+use App\Http\Controllers\Api\InvitationController;
+use App\Http\Controllers\Api\OrganizationController;
+use App\Http\Controllers\Api\QuestionController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\TagController;
+use App\Http\Controllers\Api\TestController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -15,12 +18,16 @@ Route::prefix('v1')->group(function () {
     // Public
     Route::post('/otp/send', [AuthController::class, 'sendOtp']);
     Route::post('/otp/verify', [AuthController::class, 'verifyOtp']);
-    Route::post('/magic-link/verify', [AuthController::class, 'verifyMagicLink']);
+    // Route::post('/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:5,15');
+    // Route::post('/otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:10,15');
+    Route::post('/magic-link/verify', [AuthController::class, 'verifyMagicLink'])->middleware('throttle:20,15');
+    Route::post('/magic-link/resend', [AuthController::class, 'resendMagicLink'])->middleware('throttle:5,15');
 
-    // Protected
-    Route::middleware('auth:sanctum')->group(function () {
+    // Protected (staff only)
+    Route::middleware(['auth:sanctum', 'ability:admin,recruiter,author'])->group(function () {
         Route::get('/user', [AuthController::class, 'user']);
         Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 
         // Questions
         Route::apiResource('questions', QuestionController::class);
@@ -41,17 +48,6 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('invitations', InvitationController::class);
         Route::post('/invitations/bulk', [InvitationController::class, 'bulkStore']);
 
-        // Attempts
-        Route::get('/attempts/{attempt}', [AttemptController::class, 'show']);
-        Route::put('/attempts/{attempt}', [AttemptController::class, 'update']);
-        Route::post('/attempts/{attempt}/submit', [AttemptController::class, 'submit']);
-        Route::post('/attempts/{attempt}/grade', [AttemptController::class, 'grade'])->middleware('can:grade,attempt');
-
-        // Reports
-        Route::get('/reports/attempt/{attempt}', [ReportController::class, 'show']);
-        Route::get('/reports/attempt/{attempt}/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
-        Route::get('/reports/attempt/{attempt}/csv', [ReportController::class, 'exportCsv']);
-
         // Admin: Users
         Route::middleware('can:manage-users')->group(function () {
             Route::apiResource('users', UserController::class);
@@ -68,5 +64,25 @@ Route::prefix('v1')->group(function () {
         // Organization settings (admin only)
         Route::get('/organization', [OrganizationController::class, 'show']);
         Route::put('/organization', [OrganizationController::class, 'update'])->middleware('can:manage-organization');
+    });
+
+    // Attempts (candidate + staff view)
+    Route::middleware(['auth:sanctum', 'ability:candidate,admin,recruiter'])->group(function () {
+        Route::get('/attempts/{attempt}', [AttemptController::class, 'show']);
+    });
+
+    // Candidate attempt lifecycle
+    Route::middleware(['auth:sanctum', 'ability:candidate'])->group(function () {
+        Route::post('/attempts/{attempt}/start', [AttemptController::class, 'start']);
+        Route::put('/attempts/{attempt}', [AttemptController::class, 'update']);
+        Route::post('/attempts/{attempt}/submit', [AttemptController::class, 'submit']);
+    });
+
+    // Reports and grading (recruiter/admin only)
+    Route::middleware(['auth:sanctum', 'ability:admin,recruiter'])->group(function () {
+        Route::post('/attempts/{attempt}/grade', [AttemptController::class, 'grade'])->middleware('can:grade,attempt');
+        Route::get('/reports/attempt/{attempt}', [ReportController::class, 'show']);
+        Route::get('/reports/attempt/{attempt}/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
+        Route::get('/reports/attempt/{attempt}/csv', [ReportController::class, 'exportCsv']);
     });
 });

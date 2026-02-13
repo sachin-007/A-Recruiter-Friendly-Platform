@@ -46,7 +46,7 @@
 import { computed } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
-import Alert from '../components/Alert.vue';
+import Alert from '../Components/Alert.vue';
 
 const auth = useAuthStore();
 const router = useRouter();

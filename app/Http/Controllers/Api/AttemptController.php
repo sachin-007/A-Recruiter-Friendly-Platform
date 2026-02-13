@@ -6,22 +6,57 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\AttemptResource;
 use App\Models\Attempt;
 use App\Models\AttemptAnswer;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AttemptController extends Controller
 {
-    public function show(Attempt $attempt)
+    public function show(Request $request, Attempt $attempt)
     {
-        $this->authorize('view', $attempt);
+        if (! $this->canAccessAttempt($request, $attempt)) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
 
-        $attempt->load(['test.sections.questions.options', 'answers']);
+        $attempt->load(['test.sections.questions.options', 'answers.question']);
 
         return new AttemptResource($attempt);
     }
 
+    public function start(Request $request, Attempt $attempt)
+    {
+        if (! $this->isAttemptOwner($request, $attempt)) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if ($attempt->status !== 'in_progress') {
+            return response()->json(['message' => 'Attempt already closed'], 422);
+        }
+
+        if (! $attempt->started_at) {
+            $attempt->started_at = now();
+            $attempt->save();
+        }
+
+        if ($attempt->invitation && $attempt->invitation->status !== 'completed') {
+            $attempt->invitation->update([
+                'status' => 'started',
+                'started_at' => $attempt->started_at ?? now(),
+            ]);
+        }
+
+        return response()->json(['message' => 'Attempt started']);
+    }
+
     public function update(Request $request, Attempt $attempt)
     {
-        $this->authorize('update', $attempt);
+        if (! $this->isAttemptOwner($request, $attempt)) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if ($attempt->status !== 'in_progress') {
+            return response()->json(['message' => 'Attempt already closed'], 422);
+        }
 
         $request->validate([
             'answers' => 'array',
@@ -54,11 +89,24 @@ class AttemptController extends Controller
 
     public function submit(Request $request, Attempt $attempt)
     {
-        $this->authorize('submit', $attempt);
+        if (! $this->isAttemptOwner($request, $attempt)) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if ($attempt->status !== 'in_progress') {
+            return response()->json(['message' => 'Attempt already submitted']);
+        }
 
         $attempt->status = 'completed';
         $attempt->completed_at = now();
         $attempt->save();
+
+        if ($attempt->invitation) {
+            $attempt->invitation->update([
+                'status' => 'completed',
+                'completed_at' => now(),
+            ]);
+        }
 
         // Auto-calculate MCQ scores
         $this->calculateScore($attempt);
@@ -68,7 +116,9 @@ class AttemptController extends Controller
 
     public function grade(Request $request, Attempt $attempt)
     {
-        $this->authorize('grade', $attempt);
+        if (! $this->isStaffFromSameOrg($request, $attempt)) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
 
         $request->validate([
             'answers' => 'required|array',
@@ -77,9 +127,13 @@ class AttemptController extends Controller
         ]);
 
         foreach ($request->answers as $answerData) {
-            $answer = AttemptAnswer::find($answerData['id']);
+            $answer = AttemptAnswer::where('attempt_id', $attempt->id)->find($answerData['id']);
+            if (! $answer) {
+                continue;
+            }
+
             $answer->marks_awarded = $answerData['marks_awarded'];
-            $answer->reviewed_by = auth()->id();
+            $answer->reviewed_by = $request->user() instanceof User ? $request->user()->id : null;
             $answer->reviewed_at = now();
             $answer->save();
         }
@@ -92,27 +146,82 @@ class AttemptController extends Controller
 
     private function calculateScore(Attempt $attempt)
     {
-        $answers = $attempt->answers()->with('question')->get();
+        $answers = $attempt->answers()->with('question.options')->get();
+        $marksByQuestion = DB::table('test_section_question')
+            ->join('test_sections', 'test_sections.id', '=', 'test_section_question.test_section_id')
+            ->where('test_sections.test_id', $attempt->test_id)
+            ->pluck('test_section_question.marks', 'test_section_question.question_id');
 
-        $totalMarks = 0;
-        $earnedMarks = 0;
+        $totalMarks = 0.0;
+        $earnedMarks = 0.0;
 
         foreach ($answers as $answer) {
-            $maxMarks = $answer->question->pivot?->marks ?? $answer->question->marks_default;
-
-            // For MCQ, is_correct is set at submission time
-            if ($answer->is_correct !== null) {
-                $earnedMarks += $answer->is_correct ? $maxMarks : 0;
-            } elseif ($answer->marks_awarded !== null) {
-                // Manual marking
-                $earnedMarks += $answer->marks_awarded;
+            $question = $answer->question;
+            if (! $question) {
+                continue;
             }
 
+            $maxMarks = (float) ($marksByQuestion[$question->id] ?? $question->marks_default ?? 0);
             $totalMarks += $maxMarks;
+
+            if ($question->type === 'mcq') {
+                $selectedOptionIds = collect((array) $answer->answer_json)
+                    ->map(fn ($id) => (string) $id)
+                    ->filter()
+                    ->sort()
+                    ->values();
+
+                $correctOptionIds = $question->options
+                    ->where('is_correct', true)
+                    ->pluck('id')
+                    ->map(fn ($id) => (string) $id)
+                    ->sort()
+                    ->values();
+
+                $isCorrect = $selectedOptionIds->isNotEmpty()
+                    && $selectedOptionIds->all() === $correctOptionIds->all();
+
+                $answer->is_correct = $isCorrect;
+                $answer->marks_awarded = $isCorrect ? $maxMarks : 0;
+                $answer->save();
+
+                if ($isCorrect) {
+                    $earnedMarks += $maxMarks;
+                }
+
+                continue;
+            }
+
+            if ($answer->marks_awarded !== null) {
+                $earnedMarks += (float) $answer->marks_awarded;
+            }
         }
 
-        $attempt->score_total = $earnedMarks;
+        $attempt->score_total = round($earnedMarks, 2);
         $attempt->score_percent = $totalMarks > 0 ? round(($earnedMarks / $totalMarks) * 100, 2) : 0;
         $attempt->save();
+    }
+
+    private function isAttemptOwner(Request $request, Attempt $attempt): bool
+    {
+        $tokenable = $request->user();
+        return $tokenable instanceof Attempt && $tokenable->id === $attempt->id;
+    }
+
+    private function isStaffFromSameOrg(Request $request, Attempt $attempt): bool
+    {
+        $user = $request->user();
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return in_array($user->role, ['admin', 'recruiter'], true)
+            && $user->organization_id === $attempt->test->organization_id;
+    }
+
+    private function canAccessAttempt(Request $request, Attempt $attempt): bool
+    {
+        return $this->isAttemptOwner($request, $attempt)
+            || $this->isStaffFromSameOrg($request, $attempt);
     }
 }

@@ -25,6 +25,13 @@ class QuestionResource extends JsonResource
             'tags' => TagResource::collection($this->whenLoaded('tags')),
             'created_by' => $this->creator?->name,
             'updated_by' => $this->updater?->name,
+            'pivot' => $this->whenPivotLoaded('test_section_question', function () {
+                return [
+                    'marks' => $this->pivot->marks,
+                    'order' => $this->pivot->order,
+                    'is_optional' => (bool) $this->pivot->is_optional,
+                ];
+            }),
         ];
     }
 }

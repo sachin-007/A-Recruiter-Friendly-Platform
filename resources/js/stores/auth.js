@@ -33,10 +33,15 @@ export const useAuthStore = defineStore('auth', {
             this.setToken(response.data.token);
             this.attempt = response.data.attempt;
             this.invitation = response.data.invitation;
+            this.user = {
+                role: 'candidate',
+                name: response.data.attempt?.candidate_name || response.data.attempt?.candidate_email || 'Candidate',
+            };
             await router.push(`/test/${token}`);
         },
         async fetchUser() {
             if (!this.token) return;
+            if (this.attempt && this.user?.role === 'candidate') return;
             try {
                 const response = await api.get('/user');
                 this.user = response.data;

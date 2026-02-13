@@ -2,6 +2,18 @@
   <div v-if="loading" class="flex justify-center items-center h-screen">
     <div class="text-xl">Loading your test...</div>
   </div>
+  <div v-else-if="linkError" class="max-w-xl mx-auto mt-10 p-6 bg-white rounded shadow">
+    <h1 class="text-xl font-semibold mb-3">Unable to open assessment</h1>
+    <p class="text-gray-700 mb-4">{{ linkError }}</p>
+    <button
+      v-if="canResend"
+      @click="resendLink"
+      class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+      :disabled="resendLoading"
+    >
+      {{ resendLoading ? 'Sending...' : 'Resend Link' }}
+    </button>
+  </div>
   <div v-else-if="!canStart" class="max-w-2xl mx-auto mt-10 p-6 bg-white rounded shadow">
     <h1 class="text-2xl font-bold mb-4">{{ test.title }}</h1>
     <div class="prose mb-6" v-html="test.instructions"></div>
@@ -12,13 +24,13 @@
   <div v-else class="max-w-4xl mx-auto p-6">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold">{{ test.title }}</h1>
-      <Timer :initial-seconds="timeRemaining" @time-end="submitTest" />
+      <Timer :initial-seconds="timeRemaining" @tick="onTimerTick" @time-end="submitTest" />
     </div>
     <div class="grid grid-cols-4 gap-6">
       <div class="col-span-3">
         <div v-for="section in test.sections" :key="section.id" class="mb-8">
           <h2 class="text-xl font-semibold mb-2">{{ section.title }}</h2>
-          <div v-for="(question, index) in section.questions" :key="question.id" class="mb-6 p-4 border rounded">
+          <div :id="`question-${question.id}`" v-for="(question, index) in section.questions" :key="question.id" class="mb-6 p-4 border rounded">
             <div class="flex justify-between">
               <span class="font-medium">Question {{ index + 1 }}</span>
               <span class="text-sm bg-gray-200 px-2 py-1 rounded">{{ question.type }}</span>
@@ -64,8 +76,8 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import api from '../../utils/axios';
-import Timer from '../../components/Timer.vue';
-import QuestionRenderer from '../../components/QuestionRenderer.vue';
+import Timer from '../../Components/Timer.vue';
+import QuestionRenderer from '../../Components/QuestionRenderer.vue';
 
 const route = useRoute();
 const auth = useAuthStore();
@@ -77,44 +89,69 @@ const attempt = ref(null);
 const answers = ref({});
 const timeRemaining = ref(0);
 const currentQuestionId = ref(null);
+const linkError = ref('');
+const canResend = ref(false);
+const resendLoading = ref(false);
 let saveInterval = null;
+let saveDebounce = null;
 
 const allQuestions = computed(() => {
   return test.value?.sections.flatMap(s => s.questions) || [];
 });
 
 onMounted(async () => {
-  attempt.value = auth.attempt;
+  const token = route.params.token;
+  const hasMatchingAttempt = !!auth.attempt && auth.invitation?.token === token;
+
+  attempt.value = hasMatchingAttempt ? auth.attempt : null;
+
   if (!attempt.value) {
-    // Fallback: fetch attempt by token?
-    const token = route.params.token;
     try {
       const res = await api.post('/magic-link/verify', { token });
       auth.setToken(res.data.token);
       attempt.value = res.data.attempt;
       auth.attempt = attempt.value;
+      auth.invitation = res.data.invitation;
     } catch (error) {
-      // handle expired link
+      linkError.value = error.response?.data?.message || 'Invalid or expired link.';
+      canResend.value = !!error.response?.data?.resend_available;
+      loading.value = false;
       return;
     }
   }
 
-  test.value = attempt.value.test;
-  timeRemaining.value = test.value.duration_minutes * 60 || 3600; // default 1h
+  try {
+    const res = await api.get(`/attempts/${attempt.value.id}`);
+    const attemptData = res.data.data ?? res.data;
 
-  // Load saved answers
-  const res = await api.get(`/attempts/${attempt.value.id}`);
-  if (res.data.answers) {
-    answers.value = res.data.answers.reduce((acc, a) => {
-      acc[a.question_id] = a.answer_json;
-      return acc;
-    }, {});
+    attempt.value = attemptData;
+    auth.attempt = attemptData;
+    test.value = attemptData.test;
+    timeRemaining.value = attemptData.time_remaining ?? (test.value.duration_minutes * 60 || 3600);
+
+    if (attemptData.answers) {
+      answers.value = attemptData.answers.reduce((acc, a) => {
+        acc[a.question_id] = a.answer_json;
+        return acc;
+      }, {});
+    }
+
+    if (attemptData.started_at && attemptData.status === 'in_progress') {
+      canStart.value = true;
+      saveInterval = setInterval(saveAnswers, 10000);
+    }
+  } catch (error) {
+    linkError.value = error.response?.data?.message || 'Unable to load attempt data.';
+    canResend.value = !!error.response?.data?.resend_available;
+    loading.value = false;
+    return;
   }
 
   loading.value = false;
 });
 
-function startTest() {
+async function startTest() {
+  await api.post(`/attempts/${attempt.value.id}/start`);
   canStart.value = true;
   // Start timer
   saveInterval = setInterval(saveAnswers, 10000);
@@ -129,7 +166,11 @@ async function saveAnswers() {
     })),
     time_remaining: timeRemaining.value,
   };
-  await api.put(`/attempts/${attempt.value.id}`, payload);
+  try {
+    await api.put(`/attempts/${attempt.value.id}`, payload);
+  } catch (error) {
+    // Keep UI responsive; autosave retries on next interval/change.
+  }
 }
 
 async function submitTest() {
@@ -150,13 +191,37 @@ function scrollToQuestion(questionId) {
   }
 }
 
+function onTimerTick(secondsLeft) {
+  timeRemaining.value = secondsLeft;
+}
+
+async function resendLink() {
+  resendLoading.value = true;
+  try {
+    await api.post('/magic-link/resend', { token: route.params.token });
+    linkError.value = 'A new magic link has been sent to your email.';
+    canResend.value = false;
+  } catch (error) {
+    linkError.value = error.response?.data?.message || 'Unable to resend link.';
+  } finally {
+    resendLoading.value = false;
+  }
+}
+
 onUnmounted(() => {
   clearInterval(saveInterval);
-  saveAnswers(); // final save
+  clearTimeout(saveDebounce);
+  if (canStart.value) {
+    saveAnswers(); // final save
+  }
 });
 
 // Auto-save on answer change (debounced)
 watch(answers, () => {
-  // You can debounce this if needed
+  if (!canStart.value) return;
+  clearTimeout(saveDebounce);
+  saveDebounce = setTimeout(() => {
+    saveAnswers();
+  }, 800);
 }, { deep: true });
 </script>

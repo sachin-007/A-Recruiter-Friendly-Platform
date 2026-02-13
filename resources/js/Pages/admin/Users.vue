@@ -75,9 +75,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useAlertStore } from '../../../stores/alert';
-import api from '../../../utils/axios';
-import Modal from '../../../components/Modal.vue';
+import { useAlertStore } from '../../stores/alert';
+import Modal from '../../Components/Modal.vue';
+import api from '../../utils/axios';
 
 const alert = useAlertStore();
 const users = ref({ data: [] });

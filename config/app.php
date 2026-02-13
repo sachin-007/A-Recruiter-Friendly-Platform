@@ -53,6 +53,7 @@ return [
     */
 
     'url' => env('APP_URL', 'http://localhost'),
+    'frontend_url' => rtrim(env('APP_FRONTEND_URL', env('APP_URL', 'http://localhost')), '/'),
 
     /*
     |--------------------------------------------------------------------------

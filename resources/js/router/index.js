@@ -2,22 +2,22 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
 // Layouts
-import DefaultLayout from '../layouts/DefaultLayout.vue';
+import DefaultLayout from '../Layouts/DefaultLayout.vue';
 
 // Pages
-import Login from '../pages/auth/Login.vue';
-import VerifyOtp from '../pages/auth/VerifyOtp.vue';
-import Dashboard from '../pages/dashboard/Dashboard.vue';
-import QuestionsIndex from '../pages/questions/Index.vue';
-import QuestionForm from '../pages/questions/Form.vue';
-import TestsIndex from '../pages/tests/Index.vue';
-import TestForm from '../pages/tests/Form.vue';
-import TestShow from '../pages/tests/Show.vue';
-import InvitationsIndex from '../pages/invitations/Index.vue';
-import SendInvitation from '../pages/invitations/Send.vue';
-import CandidateTest from '../pages/attempts/CandidateTest.vue';
-import ReportShow from '../pages/reports/Show.vue';
-import AdminUsers from '../pages/admin/Users.vue';
+import Login from '../Pages/Auth/Login.vue';
+import VerifyOtp from '../Pages/Auth/VerifyOtp.vue';
+import Dashboard from '../Pages/dashboard/Dashboard.vue';
+import QuestionsIndex from '../Pages/questions/Index.vue';
+import QuestionForm from '../Pages/questions/Form.vue';
+import TestsIndex from '../Pages/tests/Index.vue';
+import TestForm from '../Pages/tests/Form.vue';
+import TestShow from '../Pages/tests/Show.vue';
+import InvitationsIndex from '../Pages/invitations/Index.vue';
+import SendInvitation from '../Pages/invitations/Send.vue';
+import CandidateTest from '../Pages/attempts/CandidateTest.vue';
+import ReportShow from '../Pages/reports/Show.vue';
+import AdminUsers from '../Pages/admin/Users.vue';
 
 const routes = [
     {
@@ -41,7 +41,7 @@ const routes = [
         path: '/test/:token',
         name: 'candidate-test',
         component: CandidateTest,
-        meta: { requiresAuth: true, roles: ['candidate'] },
+        meta: { guest: true, candidateEntry: true },
         props: true,
     },
     {
@@ -142,21 +142,29 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
     const auth = useAuthStore();
 
-    if (auth.token && !auth.user) {
+    if (auth.token && !auth.user && !auth.attempt) {
         await auth.fetchUser();
+    }
+
+    if (to.meta.candidateEntry) {
+        next();
+        return;
     }
 
     if (to.meta.requiresAuth) {
         if (!auth.isAuthenticated) {
             next('/login');
+        } else if (to.meta.candidateOnly && !auth.isCandidate) {
+            next('/dashboard');
         } else if (to.meta.roles && !to.meta.roles.includes(auth.role)) {
             next('/dashboard'); // or 403 page
         } else {
             next();
         }
     } else if (to.meta.guest && auth.isAuthenticated) {
-        if (auth.role === 'candidate' && auth.attempt) {
-            next(`/test/${auth.attempt.invitation.token}`);
+        if (auth.isCandidate && auth.attempt) {
+            const candidateToken = auth.invitation?.token || to.params.token || '';
+            next(candidateToken ? `/test/${candidateToken}` : '/login');
         } else {
             next('/dashboard');
         }

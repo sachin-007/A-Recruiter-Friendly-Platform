@@ -67,31 +67,5 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('manage-organization', function (User $user) {
             return $user->role === 'admin';
         });
-
-        // Gate for candidate to access their own attempt (token-based)
-        Gate::define('access-attempt', function (User $user, Attempt $attempt) {
-            // The user is a Sanctum token with tokenable_type = Attempt, tokenable_id = attempt->id
-            // Check if the authenticated token belongs to this attempt.
-            return $user->currentAccessToken()->tokenable_type === Attempt::class
-                && $user->currentAccessToken()->tokenable_id === $attempt->id;
-        });
-
-        // Gate for candidate to update their own attempt (auto-save, submit)
-        Gate::define('update-own-attempt', function (User $user, Attempt $attempt) {
-            return Gate::allows('access-attempt', $attempt);
-        });
-
-        // Implicitly grant "admin" role all permissions (super admin)
-        Gate::before(function ($user, $ability) {
-            if ($user->role === 'admin') {
-                // Admin can do anything within their organization.
-                // For cross-organization checks, we still need policy logic.
-                // This before gate can return true for any ability, but we need to be careful.
-                // Better to rely on policies with explicit admin checks.
-                // We'll not use a blanket 'before' to avoid security holes.
-                // Instead, policies explicitly check for admin role.
-                return null; // Let policies decide.
-            }
-        });
     }
 }

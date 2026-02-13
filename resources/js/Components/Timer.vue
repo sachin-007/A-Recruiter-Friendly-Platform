@@ -11,7 +11,7 @@ const props = defineProps({
   initialSeconds: { type: Number, default: 0 },
 });
 
-const emit = defineEmits(['time-end']);
+const emit = defineEmits(['tick', 'time-end']);
 
 const secondsLeft = ref(props.initialSeconds);
 let timer = null;
@@ -24,9 +24,11 @@ const formattedTime = computed(() => {
 });
 
 onMounted(() => {
+  emit('tick', secondsLeft.value);
   timer = setInterval(() => {
     if (secondsLeft.value > 0) {
       secondsLeft.value--;
+      emit('tick', secondsLeft.value);
     } else {
       clearInterval(timer);
       emit('time-end');
