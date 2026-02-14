@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Mail\TestInvitationMail;
 use App\Models\Invitation;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,8 +25,8 @@ class SendInvitationEmail implements ShouldQueue
     public function handle()
     {
         $frontendUrl = config('app.frontend_url') . '/test/' . $this->invitation->token;
-        Mail::send('emails.invitation', ['invitation' => $this->invitation, 'url' => $frontendUrl], function ($message) {
-            $message->to($this->invitation->candidate_email)->subject('Test Invitation');
-        });
+        Mail::to($this->invitation->candidate_email)->send(
+            new TestInvitationMail($this->invitation->loadMissing('test.organization'), $frontendUrl)
+        );
     }
 }

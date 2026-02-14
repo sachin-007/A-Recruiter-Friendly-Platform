@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\LoginOtpMail;
+use App\Mail\TestInvitationMail;
 use App\Models\Attempt;
 use App\Models\Invitation;
 use App\Models\Otp;
@@ -68,10 +70,7 @@ class AuthController extends Controller
             ]
         );
 
-        // Send email (configure .env mail)
-        Mail::send('emails.otp', ['otp' => $otp, 'user' => $user], function ($message) use ($email) {
-            $message->to($email)->subject('Your Login OTP');
-        });
+        Mail::to($email)->send(new LoginOtpMail($user, $otp, 10));
 
         return response()->json([
             'message' => 'OTP sent successfully',
@@ -256,9 +255,9 @@ class AuthController extends Controller
         ]);
 
         $frontendUrl = config('app.frontend_url') . '/test/' . $invitation->token;
-        Mail::send('emails.invitation', ['invitation' => $invitation, 'url' => $frontendUrl], function ($message) use ($invitation) {
-            $message->to($invitation->candidate_email)->subject('Your new assessment link');
-        });
+        Mail::to($invitation->candidate_email)->send(
+            new TestInvitationMail($invitation->loadMissing('test.organization'), $frontendUrl, 'Your new assessment link')
+        );
 
         return response()->json(['message' => 'A new link has been sent']);
     }

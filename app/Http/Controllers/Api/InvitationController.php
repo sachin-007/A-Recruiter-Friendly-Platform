@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreInvitationRequest;
 use App\Http\Requests\BulkInvitationRequest;
 use App\Http\Resources\InvitationResource;
+use App\Mail\TestInvitationMail;
 use App\Models\Invitation;
 use App\Models\Test;
 use Illuminate\Support\Facades\Mail;
@@ -44,11 +45,10 @@ class InvitationController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        // Send email with magic link
         $frontendUrl = config('app.frontend_url') . '/test/' . $invitation->token;
-        Mail::send('emails.invitation', ['invitation' => $invitation, 'url' => $frontendUrl], function ($message) use ($invitation) {
-            $message->to($invitation->candidate_email)->subject('Test Invitation');
-        });
+        Mail::to($invitation->candidate_email)->send(
+            new TestInvitationMail($invitation->loadMissing('test.organization'), $frontendUrl)
+        );
 
         return new InvitationResource($invitation);
     }
@@ -73,11 +73,10 @@ class InvitationController extends Controller
                 'created_by' => auth()->id(),
             ]);
 
-            // Queue email sending
             $frontendUrl = config('app.frontend_url') . '/test/' . $invitation->token;
-            Mail::send('emails.invitation', ['invitation' => $invitation, 'url' => $frontendUrl], function ($message) use ($invitation) {
-                $message->to($invitation->candidate_email)->subject('Test Invitation');
-            });
+            Mail::to($invitation->candidate_email)->send(
+                new TestInvitationMail($invitation->loadMissing('test.organization'), $frontendUrl)
+            );
 
             $invitations[] = $invitation;
         }
