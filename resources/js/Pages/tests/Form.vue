@@ -21,6 +21,16 @@
         </button>
       </div>
     </form>
+
+    <div v-if="isEdit" class="rounded border border-indigo-100 bg-indigo-50 p-4 text-sm text-indigo-900">
+      <p class="font-medium">Need to add sections and attach questions?</p>
+      <p class="mt-1">
+        Open the section builder to add section titles and attach questions to this test.
+      </p>
+      <router-link :to="`/tests/${route.params.id}`" class="mt-3 inline-block rounded bg-indigo-600 px-3 py-2 text-white">
+        Open Section Builder
+      </router-link>
+    </div>
   </div>
 </template>
 
@@ -54,6 +64,8 @@ async function submit() {
   try {
     if (isEdit.value) {
       await api.put(`/tests/${route.params.id}`, form.value);
+      await router.push(`/tests/${route.params.id}`);
+      return;
     } else {
       const response = await api.post('/tests', form.value);
       const testId = response.data.data?.id ?? response.data.id;

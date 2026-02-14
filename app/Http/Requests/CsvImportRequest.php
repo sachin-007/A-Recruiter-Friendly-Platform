@@ -15,7 +15,7 @@ class CsvImportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file', 'mimetypes:text/plain,text/csv,text/tsv', 'max:5120'],
+            'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
         ];
     }
 }

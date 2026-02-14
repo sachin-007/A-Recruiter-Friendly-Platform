@@ -26,7 +26,7 @@ export const useAuthStore = defineStore('auth', {
             const response = await api.post('/otp/verify', { email, otp });
             this.setToken(response.data.token);
             this.user = response.data.user;
-            await router.push('/dashboard');
+            return response.data;
         },
         async verifyMagicLink(token) {
             const response = await api.post('/magic-link/verify', { token });
@@ -53,12 +53,15 @@ export const useAuthStore = defineStore('auth', {
             if (this.token) {
                 await api.post('/logout').catch(() => {});
             }
+            this.clearSession();
+            await router.push('/login');
+        },
+        clearSession() {
             localStorage.removeItem('auth_token');
             this.token = null;
             this.user = null;
             this.attempt = null;
             this.invitation = null;
-            await router.push('/login');
         },
     },
     persist: true, // if using pinia-plugin-persistedstate

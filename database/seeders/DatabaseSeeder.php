@@ -2,25 +2,59 @@
 
 namespace Database\Seeders;
 
+use App\Models\Organization;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        if ((bool) env('SEED_FROM_SNAPSHOT', false)) {
+            $this->call(CurrentDatabaseSnapshotSeeder::class);
+            return;
+        }
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-            'organization_id'=>1
-        ]);
+        $organization = Organization::firstOrCreate(
+            ['name' => 'Demo Organization'],
+            ['settings' => ['notifications' => true]]
+        );
+
+        $seedUsers = [
+            [
+                'name' => 'Platform Admin',
+                'email' => 'admin@example.com',
+                'role' => 'admin',
+            ],
+            [
+                'name' => 'Hiring Recruiter',
+                'email' => 'recruiter@example.com',
+                'role' => 'recruiter',
+            ],
+            [
+                'name' => 'Content Author',
+                'email' => 'author@example.com',
+                'role' => 'author',
+            ],
+        ];
+
+        foreach ($seedUsers as $seedUser) {
+            User::updateOrCreate(
+                [
+                    'organization_id' => $organization->id,
+                    'email' => $seedUser['email'],
+                ],
+                [
+                    'name' => $seedUser['name'],
+                    'role' => $seedUser['role'],
+                    'is_active' => true,
+                    'password' => Hash::make('password'),
+                ]
+            );
+        }
     }
 }

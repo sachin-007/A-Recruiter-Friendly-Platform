@@ -2,56 +2,68 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Candidate Report - {{ $attempt->candidate_name ?? $attempt->candidate_email }}</title>
+    <title>Candidate Report - {{ $report['candidate'] }}</title>
     <style>
-        body { font-family: Arial, sans-serif; font-size: 12px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        .score { font-size: 18px; font-weight: bold; }
+        body { font-family: Arial, sans-serif; font-size: 12px; color: #111827; }
+        .header { margin-bottom: 20px; }
+        .title { font-size: 20px; margin-bottom: 6px; }
+        .meta { color: #4b5563; margin-bottom: 2px; }
+        .score { font-size: 16px; font-weight: 700; margin-top: 8px; }
+        .section-title { margin: 18px 0 8px; font-size: 14px; font-weight: 700; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+        th, td { border: 1px solid #d1d5db; padding: 6px; text-align: left; vertical-align: top; }
+        th { background-color: #f3f4f6; }
+        pre { white-space: pre-wrap; margin: 0; font-family: Consolas, monospace; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h2>{{ $attempt->test->title }} - Report</h2>
-        <p>Candidate: {{ $attempt->candidate_name ?? $attempt->candidate_email }}</p>
-        <p>Completed: {{ $attempt->completed_at->format('Y-m-d H:i') }}</p>
-        <p class="score">Score: {{ $attempt->score_total }} / {{ $attempt->answers->sum(fn($a) => $a->question->pivot?->marks ?? $a->question->marks_default) }} ({{ $attempt->score_percent }}%)</p>
+        <div class="title">{{ $report['test'] }} - Candidate Report</div>
+        <div class="meta">Candidate: {{ $report['candidate'] }} ({{ $report['candidate_email'] }})</div>
+        <div class="meta">Completed: {{ optional($report['completed_at'])->format('Y-m-d H:i') }}</div>
+        <div class="score">
+            Score: {{ $report['score'] }} / {{ $report['max_score'] }} ({{ $report['percentage'] }}%)
+        </div>
     </div>
 
-    @foreach($attempt->test->sections as $section)
-        <h3>{{ $section->title }}</h3>
+    @foreach($report['sections'] as $section)
+        <div class="section-title">
+            {{ $section['title'] }} - {{ $section['score'] }} / {{ $section['max_score'] }}
+        </div>
         <table>
             <thead>
                 <tr>
-                    <th>Question</th>
-                    <th>Type</th>
-                    <th>Answer</th>
-                    <th>Marks</th>
+                    <th style="width: 36%">Question</th>
+                    <th style="width: 10%">Type</th>
+                    <th style="width: 36%">Candidate Answer</th>
+                    <th style="width: 8%">Correct</th>
+                    <th style="width: 10%">Marks</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($section->questions as $question)
-                    @php
-                        $answer = $attempt->answers->firstWhere('question_id', $question->id);
-                    @endphp
+                @foreach($section['questions'] as $question)
+                    @php($answer = $question['candidate_answer'])
                     <tr>
-                        <td>{{ strip_tags($question->description) }}</td>
-                        <td>{{ $question->type }}</td>
+                        <td>{{ $question['description'] }}</td>
+                        <td>{{ $question['type'] }}</td>
                         <td>
-                            @if($question->type === 'mcq')
-                                @php
-                                    $selected = is_array($answer?->answer_json) ? $answer->answer_json : [];
-                                    $correctOptions = $question->options->where('is_correct', true)->pluck('id')->toArray();
-                                    $isCorrect = !array_diff($selected, $correctOptions) && !array_diff($correctOptions, $selected);
-                                @endphp
-                                {{ $isCorrect ? 'Correct' : 'Incorrect' }}
+                            @if(is_array($answer) && isset($answer['code']))
+                                <div><strong>Language:</strong> {{ $answer['language'] ?? '-' }}</div>
+                                <pre>{{ $answer['code'] }}</pre>
+                            @elseif(is_array($answer))
+                                {{ json_encode($answer) }}
                             @else
-                                {{ $answer?->answer_json ?? 'No answer' }}
+                                {{ $answer ?: 'No answer' }}
                             @endif
                         </td>
-                        <td>{{ $answer->marks_awarded ?? ($answer->is_correct ? ($question->pivot->marks ?? $question->marks_default) : 0) }} / {{ $question->pivot->marks ?? $question->marks_default }}</td>
+                        <td>
+                            @if($question['is_correct'] === null)
+                                -
+                            @else
+                                {{ $question['is_correct'] ? 'Yes' : 'No' }}
+                            @endif
+                        </td>
+                        <td>{{ $question['marks_awarded'] }} / {{ $question['max_marks'] }}</td>
                     </tr>
                 @endforeach
             </tbody>

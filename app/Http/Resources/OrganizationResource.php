@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class OrganizationResource extends JsonResource
 {
@@ -11,7 +12,7 @@ class OrganizationResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'logo' => $this->logo ? asset('storage/' . $this->logo) : null,
+            'logo' => $this->logo ? Storage::disk('public')->url($this->logo) : null,
             'settings' => $this->settings,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

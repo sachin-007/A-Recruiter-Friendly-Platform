@@ -21,6 +21,14 @@ class QuestionController extends Controller
             ->when($request->difficulty, fn($q, $difficulty) => $q->where('difficulty', $difficulty))
             ->when($request->status, fn($q, $status) => $q->where('status', $status))
             ->when($request->tag, fn($q, $tag) => $q->whereHas('tags', fn($t) => $t->where('tags.id', $tag)))
+            ->when($request->created_by, function ($query) use ($request) {
+                if ($request->created_by === 'me') {
+                    $query->where('created_by', $request->user()->id);
+                    return;
+                }
+
+                $query->where('created_by', $request->created_by);
+            })
             ->with(['options', 'tags', 'creator', 'updater'])
             ->orderBy('created_at', 'desc')
             ->paginate($request->per_page ?? 15);
@@ -31,18 +39,23 @@ class QuestionController extends Controller
     public function store(StoreQuestionRequest $request)
     {
         $validated = $request->validated();
+        $options = $validated['options'] ?? [];
+        $tagIds = $validated['tags'] ?? [];
+
+        unset($validated['options'], $validated['tags']);
+
         $validated['organization_id'] = $request->user()->organization_id;
         $validated['created_by'] = $request->user()->id;
         $validated['updated_by'] = $request->user()->id;
 
         $question = Question::create($validated);
 
-        if ($request->type === 'mcq' && $request->has('options')) {
-            $question->options()->createMany($request->options);
+        if ($question->type === 'mcq' && ! empty($options)) {
+            $question->options()->createMany($options);
         }
 
         if ($request->has('tags')) {
-            $question->tags()->sync($request->tags);
+            $question->tags()->sync($tagIds);
         }
 
         return new QuestionResource($question->load('options', 'tags', 'creator'));
@@ -59,18 +72,31 @@ class QuestionController extends Controller
         $this->authorize('update', $question);
 
         $validated = $request->validated();
+        $optionsProvided = array_key_exists('options', $validated);
+        $options = $validated['options'] ?? [];
+        $tagIds = $validated['tags'] ?? [];
+
+        unset($validated['options'], $validated['tags']);
+
         $validated['updated_by'] = $request->user()->id;
 
         $question->update($validated);
 
-        if ($request->type === 'mcq' && $request->has('options')) {
-            // Simple sync: delete old, add new
+        $resolvedType = $validated['type'] ?? $question->type;
+
+        if ($resolvedType === 'mcq') {
+            if ($optionsProvided) {
+                // Simple sync: delete old, add new
+                $question->options()->delete();
+                $question->options()->createMany($options);
+            }
+        } else {
+            // Non-MCQ questions should not retain option rows.
             $question->options()->delete();
-            $question->options()->createMany($request->options);
         }
 
         if ($request->has('tags')) {
-            $question->tags()->sync($request->tags);
+            $question->tags()->sync($tagIds);
         }
 
         return new QuestionResource($question->load('options', 'tags'));

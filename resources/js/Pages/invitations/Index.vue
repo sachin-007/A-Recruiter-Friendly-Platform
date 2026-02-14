@@ -13,6 +13,7 @@
             <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Test</th>
             <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
             <th class="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Sent</th>
+            <th class="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">Action</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 bg-white">
@@ -21,6 +22,15 @@
             <td class="px-4 py-3">{{ invitation.test?.title || '-' }}</td>
             <td class="px-4 py-3">{{ invitation.status }}</td>
             <td class="px-4 py-3">{{ formatDate(invitation.sent_at) }}</td>
+            <td class="px-4 py-3 text-right">
+              <router-link
+                v-if="invitation.attempt?.id && invitation.status === 'completed'"
+                :to="`/reports/attempt/${invitation.attempt.id}`"
+                class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+              >
+                View Report
+              </router-link>
+            </td>
           </tr>
         </tbody>
       </table>

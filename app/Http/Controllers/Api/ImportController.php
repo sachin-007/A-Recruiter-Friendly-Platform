@@ -8,7 +8,6 @@ use App\Http\Resources\ImportResource;
 use App\Jobs\ProcessQuestionImport;
 use App\Models\Import;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class ImportController extends Controller
 {
@@ -29,14 +28,15 @@ class ImportController extends Controller
             'processed_rows' => 0,
         ]);
 
-        ProcessQuestionImport::dispatch($import);
+        // Process immediately so MVP works without a separate queue worker.
+        ProcessQuestionImport::dispatchSync($import);
 
-        return new ImportResource($import);
+        return new ImportResource($import->fresh());
     }
 
     public function show(Import $import)
     {
         $this->authorize('view', $import);
-        return new ImportResource($import);
+        return new ImportResource($import->load('importer'));
     }
 }

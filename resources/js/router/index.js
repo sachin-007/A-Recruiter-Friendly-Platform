@@ -10,14 +10,18 @@ import VerifyOtp from '../Pages/Auth/VerifyOtp.vue';
 import Dashboard from '../Pages/dashboard/Dashboard.vue';
 import QuestionsIndex from '../Pages/questions/Index.vue';
 import QuestionForm from '../Pages/questions/Form.vue';
+import QuestionImport from '../Pages/questions/Import.vue';
 import TestsIndex from '../Pages/tests/Index.vue';
 import TestForm from '../Pages/tests/Form.vue';
 import TestShow from '../Pages/tests/Show.vue';
 import InvitationsIndex from '../Pages/invitations/Index.vue';
 import SendInvitation from '../Pages/invitations/Send.vue';
 import CandidateTest from '../Pages/attempts/CandidateTest.vue';
+import CandidateThankYou from '../Pages/attempts/ThankYou.vue';
+import ReportIndex from '../Pages/reports/Index.vue';
 import ReportShow from '../Pages/reports/Show.vue';
 import AdminUsers from '../Pages/admin/Users.vue';
+import OrganizationSettings from '../Pages/admin/OrganizationSettings.vue';
 
 const routes = [
     {
@@ -45,6 +49,12 @@ const routes = [
         props: true,
     },
     {
+        path: '/test-submitted',
+        name: 'candidate-thank-you',
+        component: CandidateThankYou,
+        meta: { guest: true },
+    },
+    {
         path: '/',
         component: DefaultLayout,
         meta: { requiresAuth: true },
@@ -69,6 +79,12 @@ const routes = [
                 meta: { roles: ['admin', 'author'] },
             },
             {
+                path: 'questions/import',
+                name: 'questions.import',
+                component: QuestionImport,
+                meta: { roles: ['admin', 'author'] },
+            },
+            {
                 path: 'questions/:id/edit',
                 name: 'questions.edit',
                 component: QuestionForm,
@@ -86,7 +102,7 @@ const routes = [
                 path: 'tests/create',
                 name: 'tests.create',
                 component: TestForm,
-                meta: { roles: ['admin', 'author'] },
+                meta: { roles: ['admin', 'recruiter', 'author'] },
             },
             {
                 path: 'tests/:id',
@@ -99,7 +115,7 @@ const routes = [
                 path: 'tests/:id/edit',
                 name: 'tests.edit',
                 component: TestForm,
-                meta: { roles: ['admin', 'author'] },
+                meta: { roles: ['admin', 'recruiter', 'author'] },
                 props: true,
             },
             // Invitations
@@ -117,6 +133,12 @@ const routes = [
             },
             // Reports
             {
+                path: 'reports',
+                name: 'reports.index',
+                component: ReportIndex,
+                meta: { roles: ['admin', 'recruiter'] },
+            },
+            {
                 path: 'reports/attempt/:id',
                 name: 'reports.show',
                 component: ReportShow,
@@ -128,6 +150,12 @@ const routes = [
                 path: 'admin/users',
                 name: 'admin.users',
                 component: AdminUsers,
+                meta: { roles: ['admin'] },
+            },
+            {
+                path: 'admin/organization',
+                name: 'admin.organization',
+                component: OrganizationSettings,
                 meta: { roles: ['admin'] },
             },
         ],

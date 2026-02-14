@@ -18,7 +18,8 @@
     </div>
 
     <div v-if="canEdit" class="rounded bg-white p-6 shadow">
-      <h2 class="mb-4 text-lg font-semibold">Add Section</h2>
+      <h2 class="mb-2 text-lg font-semibold">Section Builder</h2>
+      <p class="mb-4 text-sm text-gray-600">Add section title, then select and attach questions below.</p>
       <form class="grid gap-3 md:grid-cols-3" @submit.prevent="createSection">
         <input
           v-model="newSection.title"
@@ -163,7 +164,7 @@ const newSection = reactive({
 const attachForms = reactive({});
 const attachLoading = reactive({});
 
-const canEdit = computed(() => ['admin', 'author'].includes(auth.role));
+const canEdit = computed(() => ['admin', 'author', 'recruiter'].includes(auth.role));
 
 onMounted(async () => {
   await Promise.all([fetchTest(), fetchQuestionBank()]);

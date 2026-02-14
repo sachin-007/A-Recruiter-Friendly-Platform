@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Test;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class TestPolicy
@@ -12,41 +11,41 @@ class TestPolicy
     use HandlesAuthorization;
 
     /**
-     * View any tests – Admin, Recruiter, Author.
+     * View any tests - Admin, Recruiter, and Author.
      */
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, ['admin', 'recruiter', 'author']);
+        return in_array($user->role, ['admin', 'recruiter', 'author'], true);
     }
 
     /**
-     * View a specific test – must be same org and have appropriate role.
+     * View a specific test - same organization and supported role.
      */
     public function view(User $user, Test $test): bool
     {
         return $user->organization_id === $test->organization_id
-            && in_array($user->role, ['admin', 'recruiter', 'author']);
+            && in_array($user->role, ['admin', 'recruiter', 'author'], true);
     }
 
     /**
-     * Create test – Admin and Author only.
+     * Create test - Admin, Recruiter, and Author.
      */
     public function create(User $user): bool
     {
-        return in_array($user->role, ['admin', 'author']);
+        return in_array($user->role, ['admin', 'recruiter', 'author'], true);
     }
 
     /**
-     * Update test – Admin and Author (same org).
+     * Update test - Admin, Recruiter, and Author (same org).
      */
     public function update(User $user, Test $test): bool
     {
         return $user->organization_id === $test->organization_id
-            && in_array($user->role, ['admin', 'author']);
+            && in_array($user->role, ['admin', 'recruiter', 'author'], true);
     }
 
     /**
-     * Delete test – Admin only.
+     * Delete test - Admin only.
      */
     public function delete(User $user, Test $test): bool
     {
@@ -55,16 +54,16 @@ class TestPolicy
     }
 
     /**
-     * Publish/archive test – Admin and Author.
+     * Publish/archive test - Admin, Recruiter, and Author.
      */
     public function publish(User $user, Test $test): bool
     {
         return $user->organization_id === $test->organization_id
-            && in_array($user->role, ['admin', 'author']);
+            && in_array($user->role, ['admin', 'recruiter', 'author'], true);
     }
 
     /**
-     * Restore test – Admin only.
+     * Restore test - Admin only.
      */
     public function restore(User $user, Test $test): bool
     {
@@ -73,7 +72,7 @@ class TestPolicy
     }
 
     /**
-     * Force delete test – Admin only.
+     * Force delete test - Admin only.
      */
     public function forceDelete(User $user, Test $test): bool
     {

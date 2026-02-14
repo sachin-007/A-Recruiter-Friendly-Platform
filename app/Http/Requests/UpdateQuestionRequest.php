@@ -29,9 +29,53 @@ class UpdateQuestionRequest extends FormRequest
             'tags' => ['nullable', 'array'],
             'tags.*' => ['exists:tags,id'],
             'options' => ['sometimes', 'array'],
-            'options.*.option_text' => ['required_with:options', 'string'],
-            'options.*.is_correct' => ['required_with:options', 'boolean'],
+            'options.*.option_text' => [
+                Rule::requiredIf(fn () => $this->resolvedType() === 'mcq' && $this->has('options')),
+                'string',
+            ],
+            'options.*.is_correct' => [
+                Rule::requiredIf(fn () => $this->resolvedType() === 'mcq' && $this->has('options')),
+                'boolean',
+            ],
             'options.*.order' => ['nullable', 'integer'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if ($this->resolvedType() !== 'mcq') {
+                return;
+            }
+
+            if ($this->input('type') === 'mcq' && ! $this->has('options')) {
+                $validator->errors()->add('options', 'MCQ questions must include options.');
+                return;
+            }
+
+            if (! $this->has('options')) {
+                return;
+            }
+
+            $options = collect($this->input('options', []));
+
+            if ($options->count() < 2) {
+                $validator->errors()->add('options', 'MCQ questions must include at least two options.');
+                return;
+            }
+
+            $correctCount = $options
+                ->filter(fn ($option) => is_array($option) && (bool) ($option['is_correct'] ?? false))
+                ->count();
+
+            if ($correctCount < 1) {
+                $validator->errors()->add('options', 'MCQ questions must include at least one correct option.');
+            }
+        });
+    }
+
+    private function resolvedType(): ?string
+    {
+        return $this->input('type') ?? $this->route('question')?->type;
     }
 }

@@ -25,10 +25,34 @@ class StoreQuestionRequest extends FormRequest
             'status' => 'required|in:draft,active,archived',
             'tags' => 'array',
             'tags.*' => 'exists:tags,id',
-            'options' => 'required_if:type,mcq|array',
-            'options.*.option_text' => 'required|string',
-            'options.*.is_correct' => 'required|boolean',
+            'options' => 'nullable|array',
+            'options.*.option_text' => [Rule::requiredIf(fn () => $this->input('type') === 'mcq'), 'string'],
+            'options.*.is_correct' => [Rule::requiredIf(fn () => $this->input('type') === 'mcq'), 'boolean'],
             'options.*.order' => 'nullable|integer',
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if ($this->input('type') !== 'mcq') {
+                return;
+            }
+
+            $options = collect($this->input('options', []));
+
+            if ($options->count() < 2) {
+                $validator->errors()->add('options', 'MCQ questions must include at least two options.');
+                return;
+            }
+
+            $correctCount = $options
+                ->filter(fn ($option) => is_array($option) && (bool) ($option['is_correct'] ?? false))
+                ->count();
+
+            if ($correctCount < 1) {
+                $validator->errors()->add('options', 'MCQ questions must include at least one correct option.');
+            }
+        });
     }
 }

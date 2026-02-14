@@ -19,7 +19,7 @@ class InvitationController extends Controller
 
         $invitations = Invitation::query()
             ->whereHas('test', fn($q) => $q->where('organization_id', auth()->user()->organization_id))
-            ->with(['test', 'creator'])
+            ->with(['test', 'creator', 'attempt'])
             ->orderBy('created_at', 'desc')
             ->paginate();
 

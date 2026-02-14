@@ -21,7 +21,7 @@ class UpdateOrganizationRequest extends FormRequest
             'settings.notifications' => ['nullable', 'array'],
             'settings.notifications.email' => ['nullable', 'boolean'],
             'settings.notifications.sms' => ['nullable', 'boolean'],
-            'settings.default_role_permissions' => ['nullable', 'array'],
+            'settings.default_role_permissions' => ['prohibited'],
         ];
     }
 }

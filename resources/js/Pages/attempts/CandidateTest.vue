@@ -43,8 +43,12 @@
           </div>
         </div>
         <div class="flex justify-end">
-          <button @click="submitTest" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">
-            Submit Test
+          <button
+            @click="submitTest"
+            class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 disabled:opacity-60"
+            :disabled="submitting"
+          >
+            {{ submitting ? 'Submitting...' : 'Submit Test' }}
           </button>
         </div>
       </div>
@@ -73,13 +77,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import api from '../../utils/axios';
 import Timer from '../../Components/Timer.vue';
 import QuestionRenderer from '../../Components/QuestionRenderer.vue';
 
 const route = useRoute();
+const router = useRouter();
 const auth = useAuthStore();
 
 const loading = ref(true);
@@ -92,6 +97,8 @@ const currentQuestionId = ref(null);
 const linkError = ref('');
 const canResend = ref(false);
 const resendLoading = ref(false);
+const submitting = ref(false);
+const hasSubmitted = ref(false);
 let saveInterval = null;
 let saveDebounce = null;
 
@@ -174,12 +181,19 @@ async function saveAnswers() {
 }
 
 async function submitTest() {
+  if (submitting.value) return;
   if (confirm('Are you sure you want to submit?')) {
+    submitting.value = true;
     clearInterval(saveInterval);
     await saveAnswers();
-    await api.post(`/attempts/${attempt.value.id}/submit`);
-    alert('Test submitted successfully!');
-    await auth.logout();
+    try {
+      await api.post(`/attempts/${attempt.value.id}/submit`);
+      hasSubmitted.value = true;
+      auth.clearSession();
+      await router.replace('/test-submitted');
+    } finally {
+      submitting.value = false;
+    }
   }
 }
 
@@ -211,7 +225,7 @@ async function resendLink() {
 onUnmounted(() => {
   clearInterval(saveInterval);
   clearTimeout(saveDebounce);
-  if (canStart.value) {
+  if (canStart.value && !hasSubmitted.value) {
     saveAnswers(); // final save
   }
 });

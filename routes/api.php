@@ -16,10 +16,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
 
     // Public
-    Route::post('/otp/send', [AuthController::class, 'sendOtp']);
-    Route::post('/otp/verify', [AuthController::class, 'verifyOtp']);
-    // Route::post('/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:5,15');
-    // Route::post('/otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:10,15');
+    Route::post('/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:5,15');
+    Route::post('/otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:10,15');
     Route::post('/magic-link/verify', [AuthController::class, 'verifyMagicLink'])->middleware('throttle:20,15');
     Route::post('/magic-link/resend', [AuthController::class, 'resendMagicLink'])->middleware('throttle:5,15');
 
@@ -81,6 +79,7 @@ Route::prefix('v1')->group(function () {
     // Reports and grading (recruiter/admin only)
     Route::middleware(['auth:sanctum', 'ability:admin,recruiter'])->group(function () {
         Route::post('/attempts/{attempt}/grade', [AttemptController::class, 'grade'])->middleware('can:grade,attempt');
+        Route::get('/reports', [ReportController::class, 'index']);
         Route::get('/reports/attempt/{attempt}', [ReportController::class, 'show']);
         Route::get('/reports/attempt/{attempt}/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
         Route::get('/reports/attempt/{attempt}/csv', [ReportController::class, 'exportCsv']);
