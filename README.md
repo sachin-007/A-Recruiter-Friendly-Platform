@@ -1,59 +1,207 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Assessment Platform
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Assessment Platform is a Laravel + Vue application for technical assessments.
 
-## About Laravel
+It supports:
+- Recruiter/Admin OTP login
+- Candidate magic-link access
+- Role-based access (admin, recruiter, author, candidate)
+- Question bank (MCQ, coding, SQL, free-text)
+- Test creation with sections and question attachment
+- Invitations by email
+- Candidate attempts with autosave
+- Reports with PDF/CSV export
+- CSV import for questions
+- Admin user and organization settings
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Tech Stack
+- Backend: Laravel 12, Sanctum, DomPDF
+- Frontend: Vue 3, Pinia, Vue Router, Vite
+- Database: MySQL or SQLite
+- Mail: SMTP (Gmail supported)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Prerequisites
+- PHP 8.2+
+- Composer
+- Node.js 18+ and npm
+- MySQL 8+ (or SQLite)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Local Setup
 
-## Learning Laravel
+1. Install dependencies
+```bash
+composer install
+npm install
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+2. Create environment file and app key
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+3. Configure `.env`
 
-## Laravel Sponsors
+Minimum required:
+```env
+APP_NAME="Assessment Platform"
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8000
+APP_FRONTEND_URL=http://127.0.0.1:8000
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Database Option A: MySQL
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3310
+DB_DATABASE=assessment_db
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-### Premium Partners
+### Database Option B: SQLite
+```env
+DB_CONNECTION=sqlite
+DB_DATABASE=database/database.sqlite
+```
+Create the file once:
+```bash
+type nul > database\database.sqlite
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+4. Session/cache/queue recommendation for local
+```env
+SESSION_DRIVER=file
+CACHE_STORE=file
+QUEUE_CONNECTION=database
+```
 
-## Contributing
+5. Run migrations and seed data
+```bash
+php artisan migrate
+php artisan db:seed
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+6. Start app
+```bash
+php artisan serve
+npm run dev
+```
 
-## Code of Conduct
+Optional worker (if you use queued jobs):
+```bash
+php artisan queue:work
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Seeded Staff Users
+After `php artisan db:seed`:
+- `admin@example.com` (admin)
+- `recruiter@example.com` (recruiter)
+- `author@example.com` (author)
 
-## Security Vulnerabilities
+Password exists for seed consistency, but login flow is OTP-based for staff.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Mail Configuration
 
-## License
+### Development (no real email sending)
+Use log mailer to inspect outgoing OTP/invitation emails in `storage/logs/laravel.log`:
+```env
+MAIL_MAILER=log
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Gmail SMTP (real email sending)
+```env
+MAIL_MAILER=smtp
+MAIL_SCHEME=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-16-char-app-password
+MAIL_FROM_ADDRESS=your-email@gmail.com
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+Gmail requirements:
+- Enable 2-Step Verification on Google account
+- Create an App Password and use it as `MAIL_PASSWORD`
+
+Apply config changes:
+```bash
+php artisan optimize:clear
+```
+
+## Authentication Flows
+
+- Staff login:
+  1. `POST /api/v1/otp/send`
+  2. `POST /api/v1/otp/verify`
+
+- Candidate flow:
+  1. Recruiter sends invitation
+  2. Candidate opens `/test/{token}`
+  3. Frontend verifies token via `POST /api/v1/magic-link/verify`
+  4. Candidate starts and submits attempt
+
+## Main API Groups
+- Auth: OTP + magic-link
+- Dashboard
+- Questions + Tags + CSV imports
+- Tests + sections + question attachment
+- Invitations (single/bulk)
+- Attempts (candidate lifecycle)
+- Reports (view, PDF export, CSV export)
+- Admin users + organization settings
+
+Routes are defined in `routes/api.php`.
+
+## Useful Commands
+```bash
+php artisan route:list
+php artisan test
+php artisan optimize:clear
+```
+
+## Troubleshooting
+
+### 1) `Target class [ability] does not exist`
+Ensure alias exists in `bootstrap/app.php`:
+- `ability` => `\Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class`
+- `abilities` => `\Laravel\Sanctum\Http\Middleware\CheckAbilities::class`
+
+### 2) `Table '...sessions' doesn't exist`
+Either:
+- set `SESSION_DRIVER=file`, or
+- generate session migration:
+  ```bash
+  php artisan session:table
+  php artisan migrate
+  ```
+
+### 3) `The "tls" scheme is not supported`
+Use:
+```env
+MAIL_SCHEME=smtp
+```
+or `MAIL_SCHEME=smtps` with port 465.
+
+### 4) Invitation link opens wrong host
+Set correct:
+```env
+APP_FRONTEND_URL=http://127.0.0.1:8000
+```
+Then run:
+```bash
+php artisan optimize:clear
+```
+
+## Snapshot Seeder (Optional)
+To seed from `database/seeders/data/current_db_snapshot.json`:
+```env
+SEED_FROM_SNAPSHOT=true
+```
+Then run:
+```bash
+php artisan db:seed
+```
