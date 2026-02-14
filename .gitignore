@@ -62,3 +62,5 @@ coverage/
 *.swp
 *.swo
 *~
+
+track.text
