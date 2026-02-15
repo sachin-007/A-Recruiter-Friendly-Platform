@@ -3,7 +3,9 @@
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-semibold text-slate-900">Reports</h1>
-        <p class="text-sm text-slate-500">Overall and section-wise candidate performance.</p>
+        <p class="text-sm text-slate-500">
+          Overall and section-wise candidate performance{{ isSuperAdmin ? ' across organizations.' : '.' }}
+        </p>
       </div>
     </div>
 
@@ -12,7 +14,9 @@
         <thead class="bg-slate-50">
           <tr>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Candidate</th>
+            <th v-if="isSuperAdmin" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Organization</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Test</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Shared By</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Score</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Completed</th>
             <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Action</th>
@@ -21,10 +25,22 @@
         <tbody class="divide-y divide-slate-100 bg-white">
           <tr v-for="attempt in reports.data" :key="attempt.id">
             <td class="px-4 py-3 text-sm text-slate-700">
-              <div>{{ attempt.candidate }}</div>
+              <div class="font-medium text-slate-900">{{ attempt.candidate }}</div>
               <div class="text-xs text-slate-500">{{ attempt.candidate_email }}</div>
             </td>
-            <td class="px-4 py-3 text-sm text-slate-700">{{ attempt.test_title }}</td>
+            <td v-if="isSuperAdmin" class="px-4 py-3 text-sm text-slate-700">
+              {{ attempt.organization_name || '-' }}
+            </td>
+            <td class="px-4 py-3 text-sm text-slate-700">
+              <div class="font-medium text-slate-900">{{ attempt.test_title || '-' }}</div>
+              <span class="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                {{ attempt.invitation_status || 'unknown' }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-sm text-slate-700">
+              <div class="font-medium text-slate-900">{{ attempt.shared_by_name || 'N/A' }}</div>
+              <div class="text-xs text-slate-500">{{ attempt.shared_by_email || '-' }}</div>
+            </td>
             <td class="px-4 py-3 text-sm text-slate-700">
               {{ attempt.score_total }} ({{ attempt.score_percent }}%)
             </td>
@@ -38,7 +54,7 @@
             </td>
           </tr>
           <tr v-if="!reports.data.length">
-            <td colspan="5" class="px-4 py-6 text-center text-sm text-slate-500">
+            <td :colspan="isSuperAdmin ? 7 : 6" class="px-4 py-6 text-center text-sm text-slate-500">
               No completed assessments yet.
             </td>
           </tr>
@@ -51,11 +67,14 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import Pagination from '../../Components/Pagination.vue';
+import { useAuthStore } from '../../stores/auth';
 import api from '../../utils/axios';
 
+const auth = useAuthStore();
 const reports = ref({ data: [] });
+const isSuperAdmin = computed(() => auth.role === 'super_admin');
 
 onMounted(() => {
   fetchReports();

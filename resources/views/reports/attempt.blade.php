@@ -20,6 +20,15 @@
     <div class="header">
         <div class="title">{{ $report['test'] }} - Candidate Report</div>
         <div class="meta">Candidate: {{ $report['candidate'] }} ({{ $report['candidate_email'] }})</div>
+        <div class="meta">Organization: {{ $report['organization_name'] ?: '-' }}</div>
+        <div class="meta">
+            Shared By:
+            {{ $report['shared_by_name'] ?: 'N/A' }}
+            @if(!empty($report['shared_by_email']))
+                ({{ $report['shared_by_email'] }})
+            @endif
+        </div>
+        <div class="meta">Invited: {{ optional($report['invited_at'])->format('Y-m-d H:i') ?: '-' }}</div>
         <div class="meta">Completed: {{ optional($report['completed_at'])->format('Y-m-d H:i') }}</div>
         <div class="score">
             Score: {{ $report['score'] }} / {{ $report['max_score'] }} ({{ $report['percentage'] }}%)

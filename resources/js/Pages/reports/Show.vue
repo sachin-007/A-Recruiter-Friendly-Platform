@@ -28,19 +28,33 @@
     </div>
 
     <template v-else-if="report">
-      <div class="grid gap-4 md:grid-cols-3">
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p class="text-xs uppercase tracking-wide text-slate-500">Candidate</p>
           <p class="mt-1 text-sm font-semibold text-slate-900">{{ report.candidate }}</p>
           <p class="text-xs text-slate-500">{{ report.candidate_email }}</p>
         </div>
         <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p class="text-xs uppercase tracking-wide text-slate-500">Total Score</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900">{{ report.score }} / {{ report.max_score }}</p>
+          <p class="text-xs uppercase tracking-wide text-slate-500">Organization</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900">{{ report.organization_name || '-' }}</p>
+          <p class="text-xs text-slate-500">Assessment owner</p>
         </div>
         <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p class="text-xs uppercase tracking-wide text-slate-500">Percentage</p>
-          <p class="mt-1 text-sm font-semibold text-slate-900">{{ report.percentage }}%</p>
+          <p class="text-xs uppercase tracking-wide text-slate-500">Shared By</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900">{{ report.shared_by_name || 'N/A' }}</p>
+          <p class="text-xs text-slate-500">{{ report.shared_by_email || '-' }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p class="text-xs uppercase tracking-wide text-slate-500">Timeline</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900">{{ formatDate(report.completed_at) }}</p>
+          <p class="text-xs text-slate-500">
+            Invited: {{ formatDate(report.invited_at) }}
+          </p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p class="text-xs uppercase tracking-wide text-slate-500">Total Score</p>
+          <p class="mt-1 text-sm font-semibold text-slate-900">{{ report.score }} / {{ report.max_score }}</p>
+          <p class="text-xs text-slate-500">Percentage: {{ report.percentage }}%</p>
         </div>
       </div>
 
@@ -100,6 +114,11 @@ onMounted(async () => {
     loading.value = false;
   }
 });
+
+function formatDate(value) {
+  if (!value) return '-';
+  return new Date(value).toLocaleString();
+}
 
 function isCodeAnswer(answer) {
   return answer && typeof answer === 'object' && !Array.isArray(answer) && 'code' in answer;

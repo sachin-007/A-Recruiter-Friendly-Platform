@@ -14,22 +14,31 @@ class ReportController extends Controller
     {
         $user = $request->user();
 
-        if (! in_array($user->role, ['admin', 'recruiter'], true)) {
+        if (! in_array($user->role, ['super_admin', 'admin', 'recruiter'], true)) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
         $attempts = Attempt::query()
             ->where('status', 'completed')
-            ->whereHas('test', fn ($query) => $query->where('organization_id', $user->organization_id))
-            ->with(['test', 'invitation'])
+            ->whereHas('test', function ($query) use ($user) {
+                if ($user->role !== 'super_admin') {
+                    $query->where('organization_id', $user->organization_id);
+                }
+            })
+            ->with(['test.organization', 'test.creator', 'invitation.creator'])
             ->orderByDesc('completed_at')
             ->paginate($request->integer('per_page', 15))
             ->through(function (Attempt $attempt) {
+                $sharedBy = $this->resolveSharedBy($attempt);
+
                 return [
                     'id' => $attempt->id,
                     'candidate' => $attempt->candidate_name ?: $attempt->candidate_email,
                     'candidate_email' => $attempt->candidate_email,
+                    'organization_name' => $attempt->test?->organization?->name,
                     'test_title' => $attempt->test?->title,
+                    'shared_by_name' => $sharedBy?->name,
+                    'shared_by_email' => $sharedBy?->email,
                     'score_total' => (float) ($attempt->score_total ?? 0),
                     'score_percent' => (float) ($attempt->score_percent ?? 0),
                     'completed_at' => $attempt->completed_at,
@@ -81,6 +90,9 @@ class ReportController extends Controller
                 'Marks Awarded',
                 'Max Marks',
                 'Correct',
+                'Organization',
+                'Shared By Name',
+                'Shared By Email',
             ]);
 
             foreach ($report['sections'] as $section) {
@@ -99,6 +111,9 @@ class ReportController extends Controller
                         $question['marks_awarded'],
                         $question['max_marks'],
                         $question['is_correct'] === null ? '' : ($question['is_correct'] ? 'Yes' : 'No'),
+                        $report['organization_name'] ?? '',
+                        $report['shared_by_name'] ?? '',
+                        $report['shared_by_email'] ?? '',
                     ]);
                 }
             }
@@ -113,8 +128,10 @@ class ReportController extends Controller
     {
         $attempt->loadMissing([
             'test.sections.questions.options',
+            'test.organization',
+            'test.creator',
             'answers.question.options',
-            'invitation',
+            'invitation.creator',
         ]);
 
         $answersByQuestion = $attempt->answers->keyBy('question_id');
@@ -164,11 +181,18 @@ class ReportController extends Controller
         $percentage = $attempt->score_percent !== null
             ? (float) $attempt->score_percent
             : ($maxScore > 0 ? round(($score / $maxScore) * 100, 2) : 0.0);
+        $sharedBy = $this->resolveSharedBy($attempt);
 
         return [
             'candidate' => $attempt->candidate_name ?: $attempt->candidate_email,
             'candidate_email' => $attempt->candidate_email,
+            'organization_name' => $attempt->test?->organization?->name,
             'test' => $attempt->test->title,
+            'shared_by_name' => $sharedBy?->name,
+            'shared_by_email' => $sharedBy?->email,
+            'shared_by_role' => $sharedBy?->role,
+            'invitation_status' => $attempt->invitation?->status,
+            'invited_at' => $attempt->invitation?->sent_at,
             'started_at' => $attempt->started_at,
             'completed_at' => $attempt->completed_at,
             'score' => round($score, 2),
@@ -176,6 +200,11 @@ class ReportController extends Controller
             'percentage' => round($percentage, 2),
             'sections' => $sections,
         ];
+    }
+
+    private function resolveSharedBy(Attempt $attempt)
+    {
+        return $attempt->invitation?->creator ?: $attempt->test?->creator;
     }
 
     private function formatCandidateAnswer($question, $answerRecord)
