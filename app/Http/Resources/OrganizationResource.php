@@ -14,6 +14,14 @@ class OrganizationResource extends JsonResource
             'name' => $this->name,
             'logo' => $this->logo ? Storage::disk('public')->url($this->logo) : null,
             'settings' => $this->settings,
+            'users_count' => $this->whenCounted('users'),
+            'questions_count' => $this->whenCounted('questions'),
+            'tests_count' => $this->whenCounted('tests'),
+            'invitations_count' => $this->whenCounted('invitations'),
+            'completed_attempts_count' => $this->when(
+                isset($this->completed_attempts_count),
+                (int) $this->completed_attempts_count
+            ),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

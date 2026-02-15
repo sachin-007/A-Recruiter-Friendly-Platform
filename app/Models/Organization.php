@@ -39,6 +39,16 @@ class Organization extends Model
         return $this->hasMany(Test::class);
     }
 
+    public function invitations()
+    {
+        return $this->hasManyThrough(Invitation::class, Test::class);
+    }
+
+    public function attempts()
+    {
+        return $this->hasManyThrough(Attempt::class, Test::class);
+    }
+
     public function imports()
     {
         return $this->hasMany(Import::class);

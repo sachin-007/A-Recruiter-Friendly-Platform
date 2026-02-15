@@ -129,7 +129,7 @@ const filters = reactive({
   created_by: '',
 });
 
-const canCreate = computed(() => ['admin', 'author'].includes(auth.role));
+const canCreate = computed(() => ['super_admin', 'admin', 'author'].includes(auth.role));
 
 onMounted(async () => {
   await Promise.all([fetchQuestions(), fetchTags()]);

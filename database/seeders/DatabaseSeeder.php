@@ -26,6 +26,11 @@ class DatabaseSeeder extends Seeder
 
         $seedUsers = [
             [
+                'name' => 'Platform Super Admin',
+                'email' => 'superadmin@example.com',
+                'role' => 'super_admin',
+            ],
+            [
                 'name' => 'Platform Admin',
                 'email' => 'admin@example.com',
                 'role' => 'admin',

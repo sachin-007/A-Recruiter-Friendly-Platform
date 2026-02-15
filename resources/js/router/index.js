@@ -21,6 +21,7 @@ import CandidateThankYou from '../Pages/attempts/ThankYou.vue';
 import ReportIndex from '../Pages/reports/Index.vue';
 import ReportShow from '../Pages/reports/Show.vue';
 import AdminUsers from '../Pages/admin/Users.vue';
+import AdminOrganizations from '../Pages/admin/Organizations.vue';
 import OrganizationSettings from '../Pages/admin/OrganizationSettings.vue';
 
 const routes = [
@@ -63,32 +64,32 @@ const routes = [
                 path: 'dashboard',
                 name: 'dashboard',
                 component: Dashboard,
-                meta: { roles: ['admin', 'recruiter', 'author'] },
+                meta: { roles: ['super_admin', 'admin', 'recruiter', 'author'] },
             },
             // Questions
             {
                 path: 'questions',
                 name: 'questions.index',
                 component: QuestionsIndex,
-                meta: { roles: ['admin', 'recruiter', 'author'] },
+                meta: { roles: ['super_admin', 'admin', 'recruiter', 'author'] },
             },
             {
                 path: 'questions/create',
                 name: 'questions.create',
                 component: QuestionForm,
-                meta: { roles: ['admin', 'author'] },
+                meta: { roles: ['super_admin', 'admin', 'author'] },
             },
             {
                 path: 'questions/import',
                 name: 'questions.import',
                 component: QuestionImport,
-                meta: { roles: ['admin', 'author'] },
+                meta: { roles: ['super_admin', 'admin', 'author'] },
             },
             {
                 path: 'questions/:id/edit',
                 name: 'questions.edit',
                 component: QuestionForm,
-                meta: { roles: ['admin', 'author'] },
+                meta: { roles: ['super_admin', 'admin', 'author'] },
                 props: true,
             },
             // Tests
@@ -96,26 +97,26 @@ const routes = [
                 path: 'tests',
                 name: 'tests.index',
                 component: TestsIndex,
-                meta: { roles: ['admin', 'recruiter', 'author'] },
+                meta: { roles: ['super_admin', 'admin', 'recruiter', 'author'] },
             },
             {
                 path: 'tests/create',
                 name: 'tests.create',
                 component: TestForm,
-                meta: { roles: ['admin', 'recruiter', 'author'] },
+                meta: { roles: ['super_admin', 'admin', 'recruiter', 'author'] },
             },
             {
                 path: 'tests/:id',
                 name: 'tests.show',
                 component: TestShow,
-                meta: { roles: ['admin', 'recruiter', 'author'] },
+                meta: { roles: ['super_admin', 'admin', 'recruiter', 'author'] },
                 props: true,
             },
             {
                 path: 'tests/:id/edit',
                 name: 'tests.edit',
                 component: TestForm,
-                meta: { roles: ['admin', 'recruiter', 'author'] },
+                meta: { roles: ['super_admin', 'admin', 'recruiter', 'author'] },
                 props: true,
             },
             // Invitations
@@ -123,26 +124,26 @@ const routes = [
                 path: 'invitations',
                 name: 'invitations.index',
                 component: InvitationsIndex,
-                meta: { roles: ['admin', 'recruiter'] },
+                meta: { roles: ['super_admin', 'admin', 'recruiter'] },
             },
             {
                 path: 'invitations/send',
                 name: 'invitations.send',
                 component: SendInvitation,
-                meta: { roles: ['admin', 'recruiter'] },
+                meta: { roles: ['super_admin', 'admin', 'recruiter'] },
             },
             // Reports
             {
                 path: 'reports',
                 name: 'reports.index',
                 component: ReportIndex,
-                meta: { roles: ['admin', 'recruiter'] },
+                meta: { roles: ['super_admin', 'admin', 'recruiter'] },
             },
             {
                 path: 'reports/attempt/:id',
                 name: 'reports.show',
                 component: ReportShow,
-                meta: { roles: ['admin', 'recruiter'] },
+                meta: { roles: ['super_admin', 'admin', 'recruiter'] },
                 props: true,
             },
             // Admin
@@ -150,13 +151,19 @@ const routes = [
                 path: 'admin/users',
                 name: 'admin.users',
                 component: AdminUsers,
-                meta: { roles: ['admin'] },
+                meta: { roles: ['super_admin', 'admin'] },
+            },
+            {
+                path: 'admin/organizations',
+                name: 'admin.organizations',
+                component: AdminOrganizations,
+                meta: { roles: ['super_admin'] },
             },
             {
                 path: 'admin/organization',
                 name: 'admin.organization',
                 component: OrganizationSettings,
-                meta: { roles: ['admin'] },
+                meta: { roles: ['super_admin', 'admin'] },
             },
         ],
     },

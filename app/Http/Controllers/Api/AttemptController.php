@@ -215,6 +215,10 @@ class AttemptController extends Controller
             return false;
         }
 
+        if ($user->role === 'super_admin') {
+            return true;
+        }
+
         return in_array($user->role, ['admin', 'recruiter'], true)
             && $user->organization_id === $attempt->test->organization_id;
     }

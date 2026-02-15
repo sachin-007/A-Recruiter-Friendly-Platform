@@ -164,7 +164,7 @@ const newSection = reactive({
 const attachForms = reactive({});
 const attachLoading = reactive({});
 
-const canEdit = computed(() => ['admin', 'author', 'recruiter'].includes(auth.role));
+const canEdit = computed(() => ['super_admin', 'admin', 'author', 'recruiter'].includes(auth.role));
 
 onMounted(async () => {
   await Promise.all([fetchTest(), fetchQuestionBank()]);

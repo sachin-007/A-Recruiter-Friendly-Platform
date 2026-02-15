@@ -18,8 +18,17 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
+        $actor = $request->user();
         $users = User::query()
-            ->where('organization_id', $request->user()->organization_id)
+            ->with('organization:id,name')
+            ->when(
+                $actor->role !== 'super_admin',
+                fn ($query) => $query->where('organization_id', $actor->organization_id)
+            )
+            ->when(
+                $actor->role === 'super_admin' && $request->filled('organization_id'),
+                fn ($query) => $query->where('organization_id', $request->organization_id)
+            )
             ->when($request->role, fn($q, $role) => $q->where('role', $role))
             ->orderBy('created_at', 'desc')
             ->paginate($request->per_page ?? 15);
@@ -31,8 +40,13 @@ class UserController extends Controller
     {
         $this->authorize('create', User::class);
 
+        $actor = $request->user();
+        $organizationId = $actor->role === 'super_admin'
+            ? $request->organization_id
+            : $actor->organization_id;
+
         $user = User::create([
-            'organization_id' => $request->user()->organization_id,
+            'organization_id' => $organizationId,
             'name' => $request->name,
             'email' => $request->email,
             'role' => $request->role,
@@ -49,13 +63,13 @@ class UserController extends Controller
             'new_values' => $user->toArray(),
         ]);
 
-        return new UserResource($user);
+        return new UserResource($user->load('organization'));
     }
 
     public function show(User $user)
     {
         $this->authorize('view', $user);
-        return new UserResource($user);
+        return new UserResource($user->load('organization'));
     }
 
     public function update(UpdateUserRequest $request, User $user)
@@ -74,7 +88,7 @@ class UserController extends Controller
             'new_values' => $user->toArray(),
         ]);
 
-        return new UserResource($user);
+        return new UserResource($user->load('organization'));
     }
 
     public function destroy(User $user)

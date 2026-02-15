@@ -29,7 +29,8 @@
           <router-link v-if="canInvite" to="/invitations" class="nav-pill" active-class="nav-pill-active">Invitations</router-link>
           <router-link v-if="canViewReports" to="/reports" class="nav-pill" active-class="nav-pill-active">Reports</router-link>
           <router-link v-if="isAdmin" to="/admin/users" class="nav-pill" active-class="nav-pill-active">Users</router-link>
-          <router-link v-if="isAdmin" to="/admin/organization" class="nav-pill" active-class="nav-pill-active">Organization</router-link>
+          <router-link v-if="isSuperAdmin" to="/admin/organizations" class="nav-pill" active-class="nav-pill-active">Organizations</router-link>
+          <router-link v-if="isAdmin" to="/admin/organization" class="nav-pill" active-class="nav-pill-active">My Organization</router-link>
         </nav>
       </div>
     </header>
@@ -51,12 +52,13 @@ const auth = useAuthStore();
 const router = useRouter();
 
 const user = computed(() => auth.user);
-const isAdmin = computed(() => auth.role === 'admin');
-const canViewQuestions = computed(() => ['admin', 'author', 'recruiter'].includes(auth.role));
-const canImportQuestions = computed(() => ['admin', 'author'].includes(auth.role));
-const canViewTests = computed(() => ['admin', 'author', 'recruiter'].includes(auth.role));
-const canInvite = computed(() => ['admin', 'recruiter'].includes(auth.role));
-const canViewReports = computed(() => ['admin', 'recruiter'].includes(auth.role));
+const isSuperAdmin = computed(() => auth.role === 'super_admin');
+const isAdmin = computed(() => ['super_admin', 'admin'].includes(auth.role));
+const canViewQuestions = computed(() => ['super_admin', 'admin', 'author', 'recruiter'].includes(auth.role));
+const canImportQuestions = computed(() => ['super_admin', 'admin', 'author'].includes(auth.role));
+const canViewTests = computed(() => ['super_admin', 'admin', 'author', 'recruiter'].includes(auth.role));
+const canInvite = computed(() => ['super_admin', 'admin', 'recruiter'].includes(auth.role));
+const canViewReports = computed(() => ['super_admin', 'admin', 'recruiter'].includes(auth.role));
 
 async function logout() {
   await auth.logout();

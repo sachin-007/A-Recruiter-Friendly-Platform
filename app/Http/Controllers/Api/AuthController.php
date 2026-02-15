@@ -18,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
-     * Send OTP to email (for recruiters/authors/admins)
+     * Send OTP to email (for super-admin/staff users)
      */
     public function sendOtp(Request $request)
     {
@@ -39,7 +39,7 @@ class AuthController extends Controller
         RateLimiter::hit($throttleKey, 15 * 60);
 
         $user = User::where('email', $request->email)
-                    ->whereIn('role', ['admin', 'recruiter', 'author'])
+                    ->whereIn('role', ['super_admin', 'admin', 'recruiter', 'author'])
                     ->first();
 
         if (!$user || !$user->is_active) {

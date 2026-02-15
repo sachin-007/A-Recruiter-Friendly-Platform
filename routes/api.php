@@ -16,13 +16,13 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
 
     // Public
-    Route::post('/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:5,15');
+    Route::post('/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:15,15');
     Route::post('/otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:10,15');
     Route::post('/magic-link/verify', [AuthController::class, 'verifyMagicLink'])->middleware('throttle:20,15');
     Route::post('/magic-link/resend', [AuthController::class, 'resendMagicLink'])->middleware('throttle:5,15');
 
     // Protected (staff only)
-    Route::middleware(['auth:sanctum', 'ability:admin,recruiter,author'])->group(function () {
+    Route::middleware(['auth:sanctum', 'ability:super_admin,admin,recruiter,author'])->group(function () {
         Route::get('/user', [AuthController::class, 'user']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
@@ -46,7 +46,7 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('invitations', InvitationController::class);
         Route::post('/invitations/bulk', [InvitationController::class, 'bulkStore']);
 
-        // Admin: Users
+        // User management
         Route::middleware('can:manage-users')->group(function () {
             Route::apiResource('users', UserController::class);
             Route::put('/users/{user}/toggle-active', [UserController::class, 'toggleActive']);
@@ -59,13 +59,21 @@ Route::prefix('v1')->group(function () {
         // Tags
         Route::apiResource('tags', TagController::class)->except(['show']); // full CRUD for admin/author
 
-        // Organization settings (admin only)
+        // Organization settings (my organization)
         Route::get('/organization', [OrganizationController::class, 'show']);
         Route::put('/organization', [OrganizationController::class, 'update'])->middleware('can:manage-organization');
+
+        // Organization management (super admin scope)
+        Route::middleware('can:manage-organization')->group(function () {
+            Route::get('/organizations', [OrganizationController::class, 'index']);
+            Route::post('/organizations', [OrganizationController::class, 'store']);
+            Route::get('/organizations/{organization}', [OrganizationController::class, 'showById']);
+            Route::put('/organizations/{organization}', [OrganizationController::class, 'updateById']);
+        });
     });
 
     // Attempts (candidate + staff view)
-    Route::middleware(['auth:sanctum', 'ability:candidate,admin,recruiter'])->group(function () {
+    Route::middleware(['auth:sanctum', 'ability:candidate,super_admin,admin,recruiter'])->group(function () {
         Route::get('/attempts/{attempt}', [AttemptController::class, 'show']);
     });
 
@@ -76,8 +84,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/attempts/{attempt}/submit', [AttemptController::class, 'submit']);
     });
 
-    // Reports and grading (recruiter/admin only)
-    Route::middleware(['auth:sanctum', 'ability:admin,recruiter'])->group(function () {
+    // Reports and grading (recruiter/admin/super admin)
+    Route::middleware(['auth:sanctum', 'ability:super_admin,admin,recruiter'])->group(function () {
         Route::post('/attempts/{attempt}/grade', [AttemptController::class, 'grade'])->middleware('can:grade,attempt');
         Route::get('/reports', [ReportController::class, 'index']);
         Route::get('/reports/attempt/{attempt}', [ReportController::class, 'show']);

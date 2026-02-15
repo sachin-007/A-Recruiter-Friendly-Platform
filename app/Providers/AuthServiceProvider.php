@@ -54,18 +54,26 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
+        Gate::before(function (User $user) {
+            if ($user->role === 'super_admin') {
+                return true;
+            }
+
+            return null;
+        });
+
         // Gate for viewing reports (uses Attempt model)
         Gate::define('view-report', [ReportPolicy::class, 'view']);
         Gate::define('export-report', [ReportPolicy::class, 'export']);
 
-        // Gate for managing users (admin only)
+        // Gate for managing users (admin and super admin)
         Gate::define('manage-users', function (User $user) {
-            return $user->role === 'admin';
+            return in_array($user->role, ['admin', 'super_admin'], true);
         });
 
-        // Gate for managing organization settings (admin only)
+        // Gate for managing organization settings
         Gate::define('manage-organization', function (User $user) {
-            return $user->role === 'admin';
+            return in_array($user->role, ['admin', 'super_admin'], true);
         });
     }
 }

@@ -38,7 +38,7 @@ import api from '../../utils/axios';
 
 const auth = useAuthStore();
 const tests = ref({ data: [] });
-const canCreate = computed(() => ['admin', 'author', 'recruiter'].includes(auth.role));
+const canCreate = computed(() => ['super_admin', 'admin', 'author', 'recruiter'].includes(auth.role));
 
 onMounted(async () => {
   const response = await api.get('/tests');

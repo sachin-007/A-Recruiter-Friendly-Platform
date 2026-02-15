@@ -2,20 +2,20 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Organization;
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateOrganizationRequest extends FormRequest
+class StoreOrganizationRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $organization = $this->route('organization') ?: $this->user()?->organization;
-        return $organization ? ($this->user()?->can('update', $organization) ?? false) : false;
+        return $this->user()?->can('create', Organization::class) ?? false;
     }
 
     public function rules(): array
     {
         return [
-            'name' => ['sometimes', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'unique:organizations,name'],
             'logo' => ['nullable', 'image', 'max:2048'],
             'settings' => ['nullable', 'array'],
             'settings.notifications' => ['nullable', 'array'],

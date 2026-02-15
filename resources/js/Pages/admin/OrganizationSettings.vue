@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-5xl space-y-6">
     <div>
-      <h1 class="text-2xl font-semibold text-slate-900">Organization Settings</h1>
+      <h1 class="text-2xl font-semibold text-slate-900">My Organization Settings</h1>
       <p class="text-sm text-slate-500">Update branding, notification settings, and review default role permissions.</p>
     </div>
 
@@ -57,6 +57,7 @@
             <thead class="bg-slate-50">
               <tr>
                 <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Feature</th>
+                <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">Super Admin</th>
                 <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">Admin</th>
                 <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">Recruiter</th>
                 <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">Author</th>
@@ -66,6 +67,7 @@
             <tbody class="divide-y divide-slate-100">
               <tr v-for="row in rolePermissionMatrix" :key="row.feature">
                 <td class="px-3 py-2 text-slate-700">{{ row.feature }}</td>
+                <td class="px-3 py-2 text-center">{{ row.super_admin ? 'Yes' : '-' }}</td>
                 <td class="px-3 py-2 text-center">{{ row.admin ? 'Yes' : '-' }}</td>
                 <td class="px-3 py-2 text-center">{{ row.recruiter ? 'Yes' : '-' }}</td>
                 <td class="px-3 py-2 text-center">{{ row.author ? 'Yes' : '-' }}</td>
@@ -110,16 +112,17 @@ const form = ref({
 });
 
 const rolePermissionMatrix = computed(() => ([
-  { feature: 'Dashboard', admin: true, recruiter: true, author: true, candidate: false },
-  { feature: 'Question Bank (view)', admin: true, recruiter: true, author: true, candidate: false },
-  { feature: 'Question Bank (create/update)', admin: true, recruiter: false, author: true, candidate: false },
-  { feature: 'Tests (create/update sections)', admin: true, recruiter: true, author: true, candidate: false },
-  { feature: 'Invitations', admin: true, recruiter: true, author: false, candidate: false },
-  { feature: 'Reports + Export PDF/CSV', admin: true, recruiter: true, author: false, candidate: false },
-  { feature: 'CSV Question Import', admin: true, recruiter: false, author: true, candidate: false },
-  { feature: 'User Management', admin: true, recruiter: false, author: false, candidate: false },
-  { feature: 'Organization Settings', admin: true, recruiter: false, author: false, candidate: false },
-  { feature: 'Take Assigned Assessment Only', admin: false, recruiter: false, author: false, candidate: true },
+  { feature: 'Dashboard', super_admin: true, admin: true, recruiter: true, author: true, candidate: false },
+  { feature: 'Question Bank (view)', super_admin: true, admin: true, recruiter: true, author: true, candidate: false },
+  { feature: 'Question Bank (create/update)', super_admin: true, admin: true, recruiter: false, author: true, candidate: false },
+  { feature: 'Tests (create/update sections)', super_admin: true, admin: true, recruiter: true, author: true, candidate: false },
+  { feature: 'Invitations', super_admin: true, admin: true, recruiter: true, author: false, candidate: false },
+  { feature: 'Reports + Export PDF/CSV', super_admin: true, admin: true, recruiter: true, author: false, candidate: false },
+  { feature: 'CSV Question Import', super_admin: true, admin: true, recruiter: false, author: true, candidate: false },
+  { feature: 'User Management', super_admin: true, admin: true, recruiter: false, author: false, candidate: false },
+  { feature: 'Organization Management', super_admin: true, admin: false, recruiter: false, author: false, candidate: false },
+  { feature: 'My Organization Settings', super_admin: true, admin: true, recruiter: false, author: false, candidate: false },
+  { feature: 'Take Assigned Assessment Only', super_admin: false, admin: false, recruiter: false, author: false, candidate: true },
 ]));
 
 onMounted(fetchOrganization);

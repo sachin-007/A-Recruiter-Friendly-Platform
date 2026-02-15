@@ -19,19 +19,28 @@ class UpdateUserRequest extends FormRequest
     {
         /** @var \App\Models\User|null $target */
         $target = $this->route('user');
+        $actor = $this->user();
+        $isSuperAdmin = $actor?->role === 'super_admin';
+        $organizationId = $isSuperAdmin
+            ? ($this->input('organization_id') ?: $target?->organization_id)
+            : $actor?->organization_id;
+        $assignableRoles = $isSuperAdmin
+            ? ['super_admin', 'admin', 'recruiter', 'author']
+            : ['admin', 'recruiter', 'author'];
 
         return [
+            'organization_id' => [$isSuperAdmin ? 'sometimes' : 'prohibited', 'uuid', 'exists:organizations,id'],
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => [
                 'sometimes',
                 'email',
                 Rule::unique('users', 'email')
-                    ->where(function ($query) {
-                        return $query->where('organization_id', $this->user()?->organization_id);
+                    ->where(function ($query) use ($organizationId) {
+                        return $query->where('organization_id', $organizationId);
                     })
                     ->ignore($target?->id),
             ],
-            'role' => ['sometimes', Rule::in(['admin', 'recruiter', 'author'])],
+            'role' => ['sometimes', Rule::in($assignableRoles)],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }
